@@ -1,7 +1,5 @@
 ﻿using UnityEngine;
-using System.Collections;
 using UnityEditor;
-using System.Reflection;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.IO;
@@ -22,17 +20,22 @@ public class ExportConfigEditor : EditorWindow
         text,
     }
 
-    readonly string _dstTypeName = "TempPath";
-    string _dstTypePath = "TempPath";
-    readonly string _dstCompressName = "CompressPath";
-    string _dstCompressPath = "CompressPath";
+    readonly string _dstTypeName = "ConfigTemp";
+    string _dstTypePath = "ConfigTemp";
+    readonly string _dstCompressName = "ConfigCompress";
+    string _dstCompressPath = "ConfigCompress";
+
+    string _configFullPath;
 
     string _configPath;
     ExportType _expType;
-    bool _checkRegex = true;
-    int _compressLevel = 5;
 
+    bool _checkRegex = true;
     int _regexLineNum = 4;
+
+    int _compressLevel = 5;
+    string _ConfigLstFile = "ConfigList.txt";
+
 
     private readonly int[] IntArray = new int[] { 1, 2, 3, 4, 5, 6, 7, 8, 9 };
     private readonly string[] CompressLevel = new string[] { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -69,7 +72,8 @@ public class ExportConfigEditor : EditorWindow
             ParseExcel();
 
         _compressLevel = EditorGUILayout.IntPopup("Compress Level: ", _compressLevel, CompressLevel, IntArray);
-
+        _ConfigLstFile = (string)EditorGUILayout.TextField("Output List File Name: ", _ConfigLstFile);
+        
         if (GUILayout.Button("Compress Files"))
             Compress();
     }
@@ -85,25 +89,30 @@ public class ExportConfigEditor : EditorWindow
     #region prepare path
     void PrepareTypePath()
     {
-        _configPath = _configPath.Replace('\\', '/');
-        _configPath = _configPath.TrimEnd('/');
+        string parent = GetParentPath();
 
-        if (!_configPath.Contains("/")) throw new Exception("Not Found /!");
-
-        _dstTypePath = _configPath.Substring(0, _configPath.LastIndexOf('/') + 1) + _dstTypeName;
+        _dstTypePath = parent + "/" + _dstTypeName;
         EmptyDir(_dstTypePath);        
     }
 
     void PrepareCompressPath()
     {
-        _configPath = _configPath.Replace('\\', '/');
-        _configPath = _configPath.TrimEnd('/');
+        string parent = GetParentPath();
 
-        if (!_configPath.Contains("/")) throw new Exception("Not Found /!");
-
-        _dstTypePath = _configPath.Substring(0, _configPath.LastIndexOf('/') + 1) + _dstTypeName;
-        _dstCompressPath = _configPath.Substring(0, _configPath.LastIndexOf('/') + 1) + _dstCompressName;
+        _dstTypePath = parent + "/" + _dstTypeName;
+        _dstCompressPath = parent + "/" + _dstCompressName;
         EmptyDir(_dstCompressPath);
+    }
+
+    string GetParentPath()
+    {
+        if (!Directory.Exists(_configPath)) throw new Exception("Not Found DIR: " + _configPath);
+
+        DirectoryInfo di = new DirectoryInfo(_configPath);
+        _configFullPath = di.FullName.Replace('\\', '/');
+
+        string parent = di.Parent.FullName.Replace('\\', '/');
+        return parent;
     }
 
     void EmptyDir(string path)
@@ -149,7 +158,7 @@ public class ExportConfigEditor : EditorWindow
                     if (_checkRegex && !CheckRegexSuccess(table)) // 需要检查，并且检查不合格
                         continue;
 
-                    string tmp_path = file.FullName.Remove(0, _configPath.Length).Replace('\\', '/');
+                    string tmp_path = file.FullName.Substring(_configFullPath.Length).Replace('\\', '/');
                     switch (_expType)
                     {
                         case ExportType.text:
@@ -162,7 +171,9 @@ public class ExportConfigEditor : EditorWindow
                             break;
                     }
                 }
-                catch (Exception e){}
+                catch (Exception e){
+                    UnityEngine.Debug.LogError("Parse Excel Error: " + e.Message);
+                }
             }
             else
             {
@@ -235,8 +246,6 @@ public class ExportConfigEditor : EditorWindow
         PrepareCompressPath();
 
         IteratorDirAndCompress(_dstTypePath);
-
-        // TODO: MD5 lst
     }
 
     void IteratorDirAndCompress(string path)
@@ -254,14 +263,16 @@ public class ExportConfigEditor : EditorWindow
                     continue;
                 try
                 {
-                    string tmp_path = file.FullName.Remove(0, _dstTypePath.Length).Replace('\\', '/');
+                    string tmp_path = file.FullName.Substring(_dstTypePath.Length).Replace('\\', '/');
                     tmp_path = Path.ChangeExtension(tmp_path, "zip");
 
                     List<string> lstFiles = new List<string>();
                     lstFiles.Add(file.FullName);
-                    WriteZipFile(lstFiles, _dstCompressPath + tmp_path, 9);
+                    WriteZipFile(lstFiles, _dstCompressPath + tmp_path, _compressLevel);
                 }
-                catch (Exception e) { }
+                catch (Exception e) {
+                    UnityEngine.Debug.LogError("Compress Error: " + e.Message);
+                }
             }
             else
             {
@@ -269,33 +280,9 @@ public class ExportConfigEditor : EditorWindow
             }
         }
     }
-    
-    /// <summary>
-    /// Decompresses the specified data.
-    /// </summary>
-    /// <param name="data">The data.</param>
-    /// <returns></returns>
-    public string Decompress(byte[] data)
-    {
-        MemoryStream ms = new MemoryStream(data);
-        ZipInputStream stream = new ZipInputStream(ms);
+    #endregion
 
-        ZipEntry entry;
-        while(null != (entry = stream.GetNextEntry()))
-        {
-            byte[] buf = new byte[1024];
-            while (true)
-            {
-                int size = stream.Read(buf, 0, buf.Length);
-                if(size > 0)
-                {
-
-                }
-            }
-        }
-        return null;
-    }
-
+    #region Zip Files and Create ListFile
     /// <summary>
     /// Writes the zip file.
     /// </summary>
@@ -336,12 +323,83 @@ public class ExportConfigEditor : EditorWindow
                 entry.Crc = crc32.Value;
                 stream.PutNextEntry(entry);
                 stream.Write(buffer, 0, buffer.Length);
+
+                ListFileAppend(path, buffer);
             }
         }
         stream.Finish();
         stream.Close();
     }
+
+    int indexFile = 1;
+    void ListFileAppend(string name, byte [] contents)
+    {
+        string path = name.Substring(_dstCompressPath.Length + 1);
+        string md5 = Encode(contents);
+        string line;
+
+        FileStream fs = null;
+        string lstFilePath = _dstCompressPath + "/" + _ConfigLstFile;
+        
+        if (!File.Exists(lstFilePath))
+        {
+            fs = File.Create(lstFilePath);
+            indexFile = 1;
+
+            line = string.Format("{0}\t{1}\t{2}\t{3}\t{4}", indexFile, path, md5, contents.Length, DateTime.Now.ToString());
+        }
+        else
+        {
+            fs = File.Open(lstFilePath, FileMode.Append);
+            ++indexFile;
+
+            line = string.Format("\n{0}\t{1}\t{2}\t{3}\t{4}", indexFile, path, md5, contents.Length, DateTime.Now.ToString());
+        }
+
+        StreamWriter sw = new StreamWriter(fs);
+        sw.Write(line);
+        sw.Close();
+        fs.Close();
+    }
+
+    public string Encode(byte[] bs)
+    {
+        System.Security.Cryptography.MD5CryptoServiceProvider x = new System.Security.Cryptography.MD5CryptoServiceProvider();
+        bs = x.ComputeHash(bs);
+        System.Text.StringBuilder sb = new System.Text.StringBuilder();
+        foreach (byte b in bs)
+        {
+            sb.Append(b.ToString("x2").ToLower());
+        }
+        return sb.ToString();
+    }
     #endregion
+
+    /// <summary>
+    /// Decompresses the specified data.
+    /// </summary>
+    /// <param name="data">The data.</param>
+    /// <returns></returns>
+    public string Decompress(byte[] data)
+    {
+        //MemoryStream ms = new MemoryStream(data);
+        //ZipInputStream stream = new ZipInputStream(ms);
+
+        //ZipEntry entry;
+        //while(null != (entry = stream.GetNextEntry()))
+        //{
+        //    byte[] buf = new byte[1024];
+        //    while (true)
+        //    {
+        //        int size = stream.Read(buf, 0, buf.Length);
+        //        if(size > 0)
+        //        {
+
+        //        }
+        //    }
+        //}
+        return null;
+    }
 
     #region Check Regex Format
     bool CheckRegexSuccess(DataTable table)

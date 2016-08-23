@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
 using System;
 
@@ -76,7 +76,6 @@ public class ExcelManager
 	private DataTable ReadExcelByNpoiDLL(string filePath,string sheetName)
 	{
 		#if UNITY_EDITOR
-		List<string> list = new List<string> ();
 
 		FileStream fs = null;
 		string cellValue = null;
@@ -96,10 +95,12 @@ public class ExcelManager
 			copyFilePath =filePath.Replace(fileName, COPY_NAME_SYMBOL + fileName);
 			File.Copy(filePath,copyFilePath,true);
 			fs = File.Open(copyFilePath, FileMode.Open, FileAccess.Read);
+            if (fs == null || !fs.CanRead) UnityEngine.Debug.LogError(fileName + " not open file or can't read. " + e.Message);
 		}
 		
 		ISheet sheet = null;
         IWorkbook workbook = null;
+        // 如果异常可能格式不支持
         if (filePath.Contains("xlsx"))
             workbook = new XSSFWorkbook(fs);
         else
