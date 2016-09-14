@@ -374,33 +374,7 @@ public class ExportConfigEditor : EditorWindow
         return sb.ToString();
     }
     #endregion
-
-    /// <summary>
-    /// Decompresses the specified data.
-    /// </summary>
-    /// <param name="data">The data.</param>
-    /// <returns></returns>
-    public string Decompress(byte[] data)
-    {
-        //MemoryStream ms = new MemoryStream(data);
-        //ZipInputStream stream = new ZipInputStream(ms);
-
-        //ZipEntry entry;
-        //while(null != (entry = stream.GetNextEntry()))
-        //{
-        //    byte[] buf = new byte[1024];
-        //    while (true)
-        //    {
-        //        int size = stream.Read(buf, 0, buf.Length);
-        //        if(size > 0)
-        //        {
-
-        //        }
-        //    }
-        //}
-        return null;
-    }
-
+    
     #region Check Regex Format
     bool CheckRegexSuccess(DataTable table)
     {
@@ -422,8 +396,7 @@ public class ExportConfigEditor : EditorWindow
         return res;
     }
     #endregion
-
-
+    
     #region base file opt
     void WriteToFile(byte[] contents, string path)
     {
