@@ -265,13 +265,11 @@ public class ExportConfigEditor : EditorWindow
                 {
                     string tmp_path = file.FullName.Substring(_dstTypePath.Length).Replace('\\', '/');
                     tmp_path = Path.ChangeExtension(tmp_path, "zip");
-
-                    List<string> lstFiles = new List<string>();
-                    lstFiles.Add(file.FullName);
-                    WriteZipFile(lstFiles, _dstCompressPath + tmp_path, _compressLevel);
+                    
+                    WriteZipFile(file.FullName, _dstCompressPath + tmp_path, _compressLevel);
                 }
                 catch (Exception e) {
-                    UnityEngine.Debug.LogError("Compress Error: " + e.Message);
+                    UnityEngine.Debug.LogError("Compress Error: " + e.ToString());
                 }
             }
             else
@@ -283,58 +281,72 @@ public class ExportConfigEditor : EditorWindow
     #endregion
 
     #region Zip Files and Create ListFile
+
     /// <summary>
-    /// Writes the zip file.
+    /// Write file to zip one by one.
     /// </summary>
-    /// <param name="filesToZip">The files to zip.</param>
-    /// <param name="path">The destination path.</param>
-    /// <param name="compression">The compression level.</param>
-    private void WriteZipFile(List<string> filesToZip, string path, int compression)
+    /// <param name="fullPath"></param>
+    /// <param name="dstFullPath"></param>
+    /// <param name="compression"></param>
+    private void WriteZipFile(string fullPath, string dstFullPath, int compression)
     {
         if (compression < 0 || compression > 9)
             throw new ArgumentException("Invalid compression rate.");
 
-        MkDir(Path.GetDirectoryName(path));
-        if (!Directory.Exists(new FileInfo(path).Directory.ToString()))
+        MkDir(Path.GetDirectoryName(dstFullPath));
+        if (!Directory.Exists(new FileInfo(dstFullPath).Directory.ToString()))
             throw new ArgumentException("The Path does not exist.");
 
-        foreach (string c in filesToZip)
-            if (!File.Exists(c))
-                throw new ArgumentException(string.Format("The File{0}does not exist!", c));
+        if (!File.Exists(fullPath))
+            throw new ArgumentException(string.Format("The File{0}does not exist!", fullPath));
 
+        string relativePath = dstFullPath.Substring(_dstCompressPath.Length + 1);
 
         Crc32 crc32 = new Crc32();
-        ZipOutputStream stream = new ZipOutputStream(File.Create(path));
+        ZipOutputStream stream = new ZipOutputStream(File.Create(dstFullPath));
         stream.SetLevel(compression);
+        
+        ZipEntry entry = new ZipEntry(Path.GetFileName(fullPath));
+        entry.DateTime = DateTime.Now;
 
-        for (int i = 0; i < filesToZip.Count; i++)
+        using (FileStream fs = File.OpenRead(fullPath))
         {
-            ZipEntry entry = new ZipEntry(Path.GetFileName(filesToZip[i]));
-            entry.DateTime = DateTime.Now;
+            byte[] buffer = new byte[fs.Length];
+            fs.Read(buffer, 0, buffer.Length);
+            entry.Size = fs.Length;
+            fs.Close();
+            crc32.Reset();
+            crc32.Update(buffer);
+            entry.Crc = crc32.Value;
+            stream.PutNextEntry(entry);
+            stream.Write(buffer, 0, buffer.Length);
 
-            using (FileStream fs = File.OpenRead(filesToZip[i]))
-            {
-                byte[] buffer = new byte[fs.Length];
-                fs.Read(buffer, 0, buffer.Length);
-                entry.Size = fs.Length;
-                fs.Close();
-                crc32.Reset();
-                crc32.Update(buffer);
-                entry.Crc = crc32.Value;
-                stream.PutNextEntry(entry);
-                stream.Write(buffer, 0, buffer.Length);
+            stream.Flush();
+            stream.CloseEntry();
+            stream.Finish();
+            stream.Close();
 
-                ListFileAppend(path, buffer);
-            }
+            UpdateListFile(relativePath, buffer);
         }
-        stream.Finish();
-        stream.Close();
+    }    
+
+    #region List File Update.
+    void UpdateListFile(string relativePath, byte [] contents)
+    {
+        switch(_expType)
+        {
+            case ExportType.json:
+                UpdateJsonListFile(relativePath, contents);
+                break;
+            case ExportType.text:
+                UpdateTextListFile(relativePath, contents);
+                break;
+        }
     }
 
     int indexFile = 1;
-    void ListFileAppend(string name, byte [] contents)
+    void UpdateTextListFile(string relativePath, byte [] contents)
     {
-        string path = name.Substring(_dstCompressPath.Length + 1);
         string md5 = Encode(contents);
         string line;
 
@@ -346,20 +358,47 @@ public class ExportConfigEditor : EditorWindow
             fs = File.Create(lstFilePath);
             indexFile = 1;
 
-            line = string.Format("{0}\t{1}\t{2}\t{3}\t{4}", indexFile, path, md5, contents.Length, DateTime.Now.ToString());
+            line = string.Format("{0}\t{1}\t{2}\t{3}\t{4}", indexFile, relativePath, md5, contents.Length, DateTime.Now.ToString());
         }
         else
         {
             fs = File.Open(lstFilePath, FileMode.Append);
             ++indexFile;
 
-            line = string.Format("\n{0}\t{1}\t{2}\t{3}\t{4}", indexFile, path, md5, contents.Length, DateTime.Now.ToString());
+            line = string.Format("\n{0}\t{1}\t{2}\t{3}\t{4}", indexFile, relativePath, md5, contents.Length, DateTime.Now.ToString());
         }
 
         StreamWriter sw = new StreamWriter(fs);
         sw.Write(line);
         sw.Close();
         fs.Close();
+    }
+
+    void UpdateJsonListFile(string relativePath, byte [] contents)
+    {
+        string md5 = Encode(contents);
+
+        JsonData jd = new JsonData();
+        
+        string lstFilePath = _dstCompressPath + "/" + _ConfigLstFile;
+        if (!File.Exists(lstFilePath))
+        {
+            indexFile = 1;
+        }
+        else
+        {
+            jd = JsonMapper.ToObject(File.ReadAllText(lstFilePath));
+            ++indexFile;
+        }
+
+        JsonData jdCol = new JsonData();
+        jdCol.Add(relativePath);
+        jdCol.Add(md5);
+        jdCol.Add(contents.Length);
+        jdCol.Add(DateTime.Now.ToString());
+        jd[indexFile.ToString()] = jdCol;
+
+        File.WriteAllText(lstFilePath, jd.ToJson());
     }
 
     public string Encode(byte[] bs)
@@ -373,8 +412,10 @@ public class ExportConfigEditor : EditorWindow
         }
         return sb.ToString();
     }
+    #endregion // update list file
+
     #endregion
-    
+
     #region Check Regex Format
     bool CheckRegexSuccess(DataTable table)
     {

@@ -20,31 +20,17 @@ public class DownloadManager : SingletonMono<DownloadManager> {
     public void download(string url, string path, System.Action<bool> finish)
     {
         download(url, delegate (byte[] res) {
-            if (res == null) finish(false);
+            if (res == null) {
+                Debug.LogError("url down null contents: " + url);
+                if (null != finish) finish(false);
+            }
             else
             {
                 FilesManager.Instance.WriteAllBytes(path, res);
-                finish(true);
+                if (null != finish) finish(true);
             }
         });
     }
-
-    // download files and save to path
-    public void download(System.Collections.Generic.List<string> urls, string path, System.Action<bool> finish)
-    {
-        int iCount = 0;
-        for(int i = 0; i < urls.Count; ++i)
-        {
-            download(urls[i], path, delegate (bool bOk) {
-                ++iCount;
-                if(iCount == urls.Count)
-                {
-                    finish(true);
-                }
-            });
-        }
-    }
-
 
     /// <summary>
     /// 必须至少写一个回调函数，不然数据不知道给谁

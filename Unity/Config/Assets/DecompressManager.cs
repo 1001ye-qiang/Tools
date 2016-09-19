@@ -10,26 +10,21 @@ public class DecompressManager : Singleton<DecompressManager> {
     /// </summary>
     /// <param name="url"></param>
     /// <param name="path"></param>
-    public void DownloadAndSave(string url, string path, System.Action finish = null)
+    public void DownloadAndSave(string url, string path, System.Action<bool> finish = null)
     {
         DownloadManager.Instance.download(url, delegate (byte[] contents)
         {
-            DecompressAndSave(path, contents);
-            if(finish != null) finish();
+            if (contents == null)
+            {
+                Debug.LogError("Down null contents, " + url);
+                if (finish != null) finish(false);
+            }
+            else {
+                DecompressAndSave(path, contents);
+                if (finish != null) finish(true);
+            }
         });
     }
-
-    public void DownloadAndSave(System.Collections.Generic.List<string> urls, string path, System.Action<float> Process)
-    {
-        float fProcess = 0f;
-        for(int i = 0; i < urls.Count; ++i)
-        {
-            DownloadAndSave(urls[i], path, delegate() {
-                Process(fProcess += 1 / urls.Count);
-            });
-        }
-    }
-
 
     /// <summary>
     /// Decompresses the specified data.
@@ -42,14 +37,13 @@ public class DecompressManager : Singleton<DecompressManager> {
 
         int offset = 0;
         ZipEntry entry;
-        while (null != (entry = stream.GetNextEntry()))
+        if (null != (entry = stream.GetNextEntry()))
         {
             byte[] buf = new byte[entry.Size];
             stream.Read(buf, offset, (int)entry.Size);
-            offset += (int)entry.Size;            
+            offset += (int)entry.Size;
             
-            string name = System.IO.Path.GetFileName(entry.Name);
-            FilesManager.Instance.WriteAllBytes(path + "/" + name, buf);
+            FilesManager.Instance.WriteAllBytes(Path.ChangeExtension(path, Path.GetExtension(entry.Name)), buf);
         }
     }
 }

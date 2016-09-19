@@ -17,12 +17,17 @@ public class FilesManager:Singleton<FilesManager> {
     public void WriteAllBytes(string path, byte[] contents)
     {
         string dir = Path.GetDirectoryName(path);
-        if (!Directory.Exists(dir)) Debug.LogError("Not Exists Directory: " + dir);
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
+        if (!Directory.Exists(dir))
+            Debug.LogError("Not Exists Directory: " + dir);
         File.WriteAllBytes(path, contents);
     }
     public void WriteAllText(string path, string contents)
     {
         string dir = Path.GetDirectoryName(path);
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
         if (!Directory.Exists(dir)) Debug.LogError("Not Exists Directory: " + dir);
         File.WriteAllText(path, contents);
     }
@@ -30,6 +35,8 @@ public class FilesManager:Singleton<FilesManager> {
     public void AppendAllText(string path, string contents)
     {
         string dir = Path.GetDirectoryName(path);
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
         if (!Directory.Exists(dir)) Debug.LogError("Not Exists Directory: " + dir);
         File.AppendAllText(path, contents);
     }
@@ -37,6 +44,8 @@ public class FilesManager:Singleton<FilesManager> {
     public void AppendAllBytes(string path, byte[] contents)
     {
         string dir = Path.GetDirectoryName(path);
+        if (!Directory.Exists(dir))
+            Directory.CreateDirectory(dir);
         if (!Directory.Exists(dir)) Debug.LogError("Not Exists Directory: " + dir);
 
         FileStream fs = File.Open(path, FileMode.Append);
