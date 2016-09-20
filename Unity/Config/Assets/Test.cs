@@ -26,6 +26,12 @@ public class Test : MonoBehaviour {
 
     void OnEnable()
     {
+        Invoke("Dl", 1f);
+    }
+
+
+    void Dl()
+    {
         lstDownList = new SortedList<string, int>();
         lstLocal = new SortedList<string, string>();
 
@@ -35,7 +41,7 @@ public class Test : MonoBehaviour {
                 lBytes -= lstDownList[name];
                 lstDownList.Remove(name);
                 int hasDown = iDownTotalNum - lstDownList.Count;
-                fProcess = hasDown / iDownTotalNum;
+                fProcess = (float)hasDown / iDownTotalNum;
                 Debug.Log(hasDown + "/" + iDownTotalNum + " " + lBytes);
             }, 
             delegate (bool bFinish) {
@@ -44,6 +50,19 @@ public class Test : MonoBehaviour {
                     // TODO: Update UI
                 }
             });
+    }
+
+    void OnGUI()
+    {
+        GUI.TextArea(new Rect(100, 40, 1000, 40), fProcess.ToString());
+
+        GUI.TextArea(new Rect(100, 80, 1000, 40), Application.companyName);
+        GUI.TextArea(new Rect(100, 120, 1000, 40), Application.productName);
+
+        GUI.TextArea(new Rect(100, 160, 1000, 40), Application.isShowingSplashScreen.ToString());
+
+        GUI.TextArea(new Rect(100, 200, 1000, 40), Application.bundleIdentifier);
+        GUI.TextArea(new Rect(100, 240, 1000, 40), Application.version);
     }
 
     void DownloadListFile(System.Action<string> finishOne, System.Action<bool> finish)

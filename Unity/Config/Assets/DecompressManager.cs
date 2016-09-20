@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
-using System.Collections;
-using ICSharpCode.SharpZipLib.Zip;
 using System.IO;
+using ICSharpCode.SharpZipLib.Zip;
 
 public class DecompressManager : Singleton<DecompressManager> {
 
