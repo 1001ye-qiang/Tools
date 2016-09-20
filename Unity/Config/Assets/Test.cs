@@ -7,24 +7,12 @@ public class Test : MonoBehaviour {
 
     public float fProcess = 0f;
 
-    public string url = "http://192.168.0.246:8080/zq/ConfigCompress/";
-    // end with "/"
-    private string Url { get { if (!url.EndsWith("/")) url += "/"; return url; } }
-
-    private string strDstPath = "";
-    // end with "/"
-    private string StrDstPath { get { if (string.IsNullOrEmpty(strDstPath)) strDstPath = Application.persistentDataPath + "/"; return strDstPath; } }
-
-    private string strConfigName = "ConfigList.txt";
-    private string StrConfigURL { get { return Url + strConfigName; } }
-    private string StrConfigPath { get { return StrDstPath + strConfigName; } }
-
     long lBytes = 0;
     int iDownTotalNum = 0;
     SortedList<string, int> lstDownList = new SortedList<string, int>();
     SortedList<string, string> lstLocal = new SortedList<string, string>();
 
-    void OnEnable()
+    void Start()
     {
         Invoke("Dl", 1f);
     }
@@ -55,15 +43,18 @@ public class Test : MonoBehaviour {
 
     void OnGUI()
     {
-        GUI.TextArea(new Rect(100, 40, 1000, 40), fProcess.ToString());
+        GUI.TextArea(new Rect(100, 40, 1000, 20), fProcess.ToString());
 
-        GUI.TextArea(new Rect(100, 80, 1000, 40), Application.companyName);
-        GUI.TextArea(new Rect(100, 120, 1000, 40), Application.productName);
+        GUI.TextArea(new Rect(100, 60, 1000, 20), Application.companyName);
+        GUI.TextArea(new Rect(100, 80, 1000, 20), Application.productName);
 
-        GUI.TextArea(new Rect(100, 160, 1000, 40), Application.isShowingSplashScreen.ToString());
+        GUI.TextArea(new Rect(100, 100, 1000, 20), Application.isShowingSplashScreen.ToString());
 
-        GUI.TextArea(new Rect(100, 200, 1000, 40), Application.bundleIdentifier);
-        GUI.TextArea(new Rect(100, 240, 1000, 40), Application.version);
+        GUI.TextArea(new Rect(100, 120, 1000, 20), Application.bundleIdentifier);
+        GUI.TextArea(new Rect(100, 140, 1000, 20), Application.version);
+
+        GUI.TextArea(new Rect(100, 160, 1000, 20), ConfigManager.Instance.GetData("ZaoHuaNeedConfig.json", "10", "experience"));
+        GUI.TextArea(new Rect(100, 180, 1000, 20), ConfigManager.Instance.GetDataLength("ZaoHuaNeedConfig.json").ToString());
     }
 
     void DownloadListFile(System.Action<string> finishOne, System.Action<bool> finish)
@@ -71,9 +62,9 @@ public class Test : MonoBehaviour {
         lstLocal.Clear();
         lstDownList.Clear();
 
-        if (File.Exists(StrConfigPath))
+        if (File.Exists(BaseDefinition.Instance.StrConfigPath))
         {
-            LitJson.JsonData jdLocal = LitJson.JsonMapper.ToObject(File.ReadAllText(StrConfigPath));
+            LitJson.JsonData jdLocal = LitJson.JsonMapper.ToObject(File.ReadAllText(BaseDefinition.Instance.StrConfigPath));
             for (int i = 1; i <= jdLocal.Count; ++i)
             {
                 string key = i.ToString();
@@ -82,17 +73,17 @@ public class Test : MonoBehaviour {
         }
 
         // [JSON]config files
-        DownloadManager.Instance.download(StrConfigURL, delegate (string contents) {
+        DownloadManager.Instance.download(BaseDefinition.Instance.StrConfigURL, delegate (string contents) {
             if (string.IsNullOrEmpty(contents))
             {
-                Debug.LogError("Download List File Error! \nurl:" + StrConfigURL);
+                Debug.LogError("Download List File Error! \nurl:" + BaseDefinition.Instance.StrConfigURL);
                 return;
             }
 
             // 目前没有做无用表删除；更新到一半停了，重启需要再重新下载
             LitJson.JsonData jd = LitJson.JsonMapper.ToObject(contents);
             Download(jd, finishOne, delegate(bool bFinish) {
-                FilesManager.Instance.WriteAllText(StrConfigPath, contents);
+                FilesManager.Instance.WriteAllText(BaseDefinition.Instance.StrConfigPath, contents);
                 finish(bFinish);
             });
         });        
@@ -101,7 +92,7 @@ public class Test : MonoBehaviour {
 
     void Download(LitJson.JsonData jd, System.Action<string> finishOne, System.Action<bool> finish)
     {
-        Debug.LogError(StrDstPath);
+        Debug.LogError(BaseDefinition.Instance.StrDstPath);
 
         for(int i = 1; i <= jd.Count; ++i)
         {
@@ -117,7 +108,7 @@ public class Test : MonoBehaviour {
             lstDownList.Add(name, length);
 
             // 下载压缩文件
-            DecompressManager.Instance.DownloadAndSave(Url + name, StrDstPath + name, delegate (bool bSuccess) {
+            DecompressManager.Instance.DownloadAndSave(BaseDefinition.Instance.url + name, BaseDefinition.Instance.StrDstPath + name, delegate (bool bSuccess) {
                 if (bSuccess)
                 {
                     if (finishOne != null) finishOne(name);
@@ -150,7 +141,7 @@ public class Test : MonoBehaviour {
     IEnumerator DownloadOne(string name, System.Action<string> finishOne, System.Action<bool> finish)
     {
         yield return new WaitForSeconds(0.22f);
-        DecompressManager.Instance.DownloadAndSave(Url + name, StrDstPath + name, delegate (bool bSuccess) {
+        DecompressManager.Instance.DownloadAndSave(BaseDefinition.Instance.url + name, BaseDefinition.Instance.StrDstPath + name, delegate (bool bSuccess) {
             if (bSuccess)
             {
                 if (finishOne != null) finishOne(name);

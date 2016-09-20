@@ -143,10 +143,9 @@ public class ExcelManager
 		{
 			cell = firstRow.GetCell(i);
 			
-			if (cell == null) cellValue = "";
-			else cellValue = cell.StringCellValue;
-			
-			cellValue += "_" + i;
+            cellValue = cell != null ? cell.ToString() : "";
+
+            cellValue += "_" + i;
 			
 			DataColumn column = new DataColumn(cellValue);
 			data.Columns.Add(column);

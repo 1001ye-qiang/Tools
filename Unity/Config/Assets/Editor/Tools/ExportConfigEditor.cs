@@ -30,7 +30,7 @@ public class ExportConfigEditor : EditorWindow
     string _configPath;
     ExportType _expType;
 
-    bool _checkRegex = true;
+    bool _checkRegex = false;
     int _regexLineNum = 4;
 
     int _compressLevel = 5;
@@ -172,6 +172,7 @@ public class ExportConfigEditor : EditorWindow
                     }
                 }
                 catch (Exception e){
+                    UnityEngine.Debug.LogError("Parse Excel Error: " + file.FullName);
                     UnityEngine.Debug.LogError("Parse Excel Error: " + e.Message);
                 }
             }
@@ -458,26 +459,11 @@ public class ExportConfigEditor : EditorWindow
 
         if (!Directory.Exists(path))
         {
-            string parent = Directory.GetParent(path).FullName;
-            if (string.IsNullOrEmpty(parent)) throw new Exception("string.IsNullOrEmpty(parent)");
-
-            if (!Directory.Exists(parent))
-                MkDir(parent);
             Directory.CreateDirectory(path);
+
+            if (!Directory.Exists(path)) throw new Exception("string.Create Dir Error!" + path);
         }        
     }
     #endregion
     
-    /*
-    string GetData(JsonData data, string id, string attr_name)
-    {
-        try {
-            return (string)data[id][(int)data["Title"][attr_name]];
-        }
-        catch(Exception e)
-        {
-            UnityEngine.Debug.Log("Not Found ID: " + id);
-            return null;
-        }
-    }*/
 }

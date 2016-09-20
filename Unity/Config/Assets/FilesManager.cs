@@ -6,12 +6,12 @@ public class FilesManager:Singleton<FilesManager> {
 
     public string ReadAllText(string path)
     {
-        if (!File.Exists(path)) Debug.LogError("Not Exists File: " + path);
+        if (!File.Exists(path)) { Debug.LogError("Not Exists File: " + path); return null; }
         return File.ReadAllText(path);
     }
     public byte[] ReadAllBytes(string path)
     {
-        if (!File.Exists(path)) Debug.LogError("Not Exists File: " + path);
+        if (!File.Exists(path)) { Debug.LogError("Not Exists File: " + path); return null; }
         return File.ReadAllBytes(path);
     }
     public void WriteAllBytes(string path, byte[] contents)
