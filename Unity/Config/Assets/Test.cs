@@ -47,6 +47,7 @@ public class Test : MonoBehaviour {
             delegate (bool bFinish) {
                 if (bFinish)
                 {
+                    fProcess = 1f;
                     // TODO: Update UI
                 }
             });
@@ -70,6 +71,16 @@ public class Test : MonoBehaviour {
         lstLocal.Clear();
         lstDownList.Clear();
 
+        if (File.Exists(StrConfigPath))
+        {
+            LitJson.JsonData jdLocal = LitJson.JsonMapper.ToObject(File.ReadAllText(StrConfigPath));
+            for (int i = 1; i <= jdLocal.Count; ++i)
+            {
+                string key = i.ToString();
+                lstLocal.Add((string)jdLocal[key][0], (string)jdLocal[key][1]);
+            }
+        }
+
         // [JSON]config files
         DownloadManager.Instance.download(StrConfigURL, delegate (string contents) {
             if (string.IsNullOrEmpty(contents))
@@ -80,18 +91,12 @@ public class Test : MonoBehaviour {
 
             // 目前没有做无用表删除；更新到一半停了，重启需要再重新下载
             LitJson.JsonData jd = LitJson.JsonMapper.ToObject(contents);
-            Download(jd, finishOne, finish);
+            Download(jd, finishOne, delegate(bool bFinish) {
+                FilesManager.Instance.WriteAllText(StrConfigPath, contents);
+                finish(bFinish);
+            });
         });        
 
-        if (File.Exists(StrConfigPath))
-        {
-            LitJson.JsonData jdLocal = LitJson.JsonMapper.ToObject(File.ReadAllText(StrConfigPath));
-            for (int i = 1; i <= jdLocal.Count; ++i)
-            {
-                string key = i.ToString();
-                lstLocal.Add((string)jdLocal[key][0], (string)jdLocal[key][1]);
-            }
-        }
     }
 
     void Download(LitJson.JsonData jd, System.Action<string> finishOne, System.Action<bool> finish)
