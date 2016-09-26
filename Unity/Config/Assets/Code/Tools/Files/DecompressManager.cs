@@ -15,7 +15,6 @@ public class DecompressManager : Singleton<DecompressManager> {
         {
             if (contents == null)
             {
-                Debug.LogError("Down null contents, " + url);
                 if (finish != null) finish(false);
             }
             else {

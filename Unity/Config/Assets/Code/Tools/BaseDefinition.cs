@@ -17,7 +17,5 @@ public class BaseDefinition : SingletonMono<BaseDefinition> {
         // end with "/"
         url = url.Replace('\\', '/');
         if (!url.EndsWith("/")) url += "/";
-
-
     }
 }

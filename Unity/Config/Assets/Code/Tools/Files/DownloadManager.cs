@@ -57,7 +57,7 @@ public class DownloadManager : SingletonMono<DownloadManager> {
         }
         else
         {
-            Debug.LogError("Load File Error: " + url);
+            Debug.LogError("Load File Error: " + url + "\n" + www.error);
             if (bytes_cb != null) bytes_cb(null);
             if (string_cb != null) string_cb(null);
         }

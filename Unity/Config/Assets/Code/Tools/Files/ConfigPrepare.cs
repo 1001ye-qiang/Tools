@@ -3,26 +3,24 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 
-public class Test : MonoBehaviour {
+public class ConfigPrepare : MonoBehaviour {
 
-    public float fProcess = 0f;
-
-    long lBytes = 0;
-    int iDownTotalNum = 0;
-    SortedList<string, int> lstDownList = new SortedList<string, int>();
-    SortedList<string, string> lstLocal = new SortedList<string, string>();
 
     void Start()
     {
-        Invoke("Dl", 1f);
+        Dl();
     }
 
 
+    public float fProcess = 0f;
+    long lBytes = 0;
+    int iDownTotalNum = 0;
+
+    SortedList<string, int> lstDownList = new SortedList<string, int>();
+    SortedList<string, string> lstLocal = new SortedList<string, string>();
+
     void Dl()
     {
-        lstDownList = new SortedList<string, int>();
-        lstLocal = new SortedList<string, string>();
-
         DownloadListFile(
             delegate(string name) {
                 // TODO:
@@ -40,22 +38,24 @@ public class Test : MonoBehaviour {
                 }
             });
     }
-
+    /*
     void OnGUI()
     {
         GUI.TextArea(new Rect(100, 40, 1000, 20), fProcess.ToString());
 
+        // 不会变
         GUI.TextArea(new Rect(100, 60, 1000, 20), Application.companyName);
         GUI.TextArea(new Rect(100, 80, 1000, 20), Application.productName);
 
         GUI.TextArea(new Rect(100, 100, 1000, 20), Application.isShowingSplashScreen.ToString());
 
+        // 二次打包能修改
         GUI.TextArea(new Rect(100, 120, 1000, 20), Application.bundleIdentifier);
         GUI.TextArea(new Rect(100, 140, 1000, 20), Application.version);
 
-        GUI.TextArea(new Rect(100, 160, 1000, 20), ConfigManager.Instance.GetData("ZaoHuaNeedConfig.json", "10", "experience"));
-        GUI.TextArea(new Rect(100, 180, 1000, 20), ConfigManager.Instance.GetDataLength("ZaoHuaNeedConfig.json").ToString());
-    }
+        //GUI.TextArea(new Rect(100, 160, 1000, 20), ConfigManager.Instance.GetData("ZaoHuaNeedConfig.json", "10", "experience"));
+        //GUI.TextArea(new Rect(100, 180, 1000, 20), ConfigManager.Instance.GetDataLength("ZaoHuaNeedConfig.json").ToString());
+    }*/
 
     void DownloadListFile(System.Action<string> finishOne, System.Action<bool> finish)
     {
