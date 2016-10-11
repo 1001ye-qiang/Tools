@@ -6,13 +6,7 @@ public class Pool<T> : Singleton<Pool<T>> where T : class, new()
 {
     private Queue<object> _que = new Queue<object>();
 
-    /// <summary>
-    /// 不能有同名，而不是同一个东西的调用
-    /// </summary>
-    /// <param name="typename">唯一类型标识</param>
-    /// <param name="original">当不存在的时候用来克隆的Ojbect</param>
-    /// <returns></returns>
-    public object GetItem()
+    public object Get()
     {
         if(_que.Count > 0)
         {
@@ -20,10 +14,10 @@ public class Pool<T> : Singleton<Pool<T>> where T : class, new()
         }
         else
         {
-            return CreateItem();
+            return Create();
         }
     }
-    private object CreateItem()
+    private object Create()
     {
         return new T();
     }
