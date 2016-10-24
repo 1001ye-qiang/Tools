@@ -59,7 +59,7 @@ public class UIManager : SingletonMono<UIManager>
     /// <param name="uiName">界面资源路径</param>
     /// <param name="data">界面初始化需要的数据</param>
     /// <param name="bHideOther">非一级界面时，是否隐藏其他界面</param>
-    public void RequestFirstUI(GUILevelEnum level, object data = null, bool bHideOther = true, System.Action<GameObject> finish = null)
+    public void RequestFirstUI(GUILevelEnum level, object data = null, bool bHideOther = true, bool bStack = true, System.Action<GameObject> finish = null)
     {
         LoadUI(UIDefine.Instance.DicUI[level], delegate (Transform trans)
         {
@@ -79,7 +79,7 @@ public class UIManager : SingletonMono<UIManager>
                 trans.SendMessage("InitData", data, SendMessageOptions.DontRequireReceiver);
 
                 if (trans != null) // InitData 可能销毁自己
-                    ChangeUI((int)level, bHideOther, trans.gameObject);
+                    ChangeUI((int)level, bHideOther, bStack, trans.gameObject);
 
                 if (finish != null)
                     finish(trans != null ? trans.gameObject : null);
@@ -125,41 +125,24 @@ public class UIManager : SingletonMono<UIManager>
         }
     }
 
+
     /// <summary>
     /// 界面层级处理
     /// </summary>
-    /// <param name="level">层级</param>
-    /// <param name="hide">2级界面的隐藏功能</param>
-    private void ChangeUI(int level, bool hide, GameObject objAdd)
+    /// <param name="level">层级ID</param>
+    /// <param name="hideOhter">隐藏其它主要界面</param>
+    /// <param name="stackType">栈式存入，顶掉本层，更高层</param>
+    /// <param name="objAdd">obj</param>
+    private void ChangeUI(int level, bool hideOhter, bool stackType, GameObject objAdd)
     {
         int caseValue = (int)(level / 1000);
-        switch (caseValue)
-        {
-            case UIDefine.iLevelUI_1:// -1 level ui, clear all ui
-                ClearUI(caseValue);
-                break;
-            case UIDefine.iLevelUI0: // 0 level ui, use for be strong or activity
-                ClearUI(caseValue);
-                HideAllUI();
-                break;
-            case UIDefine.iLevelUI1: // 1 level ui, clear all ui but 0, and hide 0 level ui.
-                ClearUI(caseValue);
-                HideAllUI();
-                break;
-            case UIDefine.iLevelUI2: // 2 level ui
-                ClearUI(caseValue);
-                if (hide)
-                    HideAllUI();
-                break;
-            case UIDefine.iLevelUI3:
-                if (hide)
-                    HideAllUI();
-                break;
-            case UIDefine.iLevelUI9:
-                selfManageUI.Add(objAdd);
-                return;
-        }
-        nowShowUI.Add(objAdd);
+        if (stackType) ClearUI(caseValue);
+        if (hideOhter) HideAllUI();
+
+        if(caseValue == UIDefine.iLevelUI9)
+            selfManageUI.Add(objAdd);
+        else
+            nowShowUI.Add(objAdd);        
     }
 
     /// <summary>
